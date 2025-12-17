@@ -39,6 +39,6 @@ export interface Inseminacao {
   parto: Parto | null;
 }
 
-export type Screen = 'dashboard' | 'inseminacao' | 'gestacao' | 'fichas';
+export type Screen = 'dashboard' | 'inseminacao' | 'gestacao' | 'fichas' | 'relatorios';
 
 export type Urgency = 'vermelho' | 'amarelo' | 'verde';

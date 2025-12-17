@@ -500,10 +500,6 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
              const dataParto = item.parto ? new Date(item.parto.dataRealParto + 'T00:00:00') : null;
 
              // 2. Year Filter
-             // If we have a birth, check birth year first if we are in "production mode" (implied by filtering).
-             // But to keep it simple and inclusive: if a filter year is set, match either inception or birth year.
-             // OR strictly match birth year if birth exists? 
-             // Let's stick to: if Parto exists, use Parto Year. Else use Insem Year.
              let yearMatch = true;
              if (filterYear) {
                  if (item.parto) {
@@ -519,8 +515,6 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
                  if (dataParto) {
                      monthMatch = dataParto.getMonth().toString() === filterMonth;
                  } else {
-                     // If user selects a month, they want to see events (births) in that month.
-                     // If no birth, exclude.
                      monthMatch = false;
                  }
              }
@@ -922,6 +916,36 @@ const RelatoriosScreen: React.FC<{
 };
 
 // --- INSEMINAÇÃO SCREEN ---
+
+const StatusLegend = () => (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm">
+      <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
+         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+         </svg> 
+         Legenda de Status
+      </h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-gray-700">
+         <div className="flex flex-col gap-1">
+            <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold border border-green-200 w-fit">GESTANTE</span>
+            <span className="text-xs">Matriz inseminada, aguardando parto.</span>
+         </div>
+         <div className="flex flex-col gap-1">
+            <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs font-bold border border-purple-200 w-fit">LACTANTE</span>
+            <span className="text-xs">Pariu recentemente (até 28 dias), amamentando.</span>
+         </div>
+         <div className="flex flex-col gap-1">
+            <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded text-xs font-bold border border-gray-200 w-fit">VAZIA</span>
+            <span className="text-xs">Desmamada (pós-lactação), pronta p/ inseminar.</span>
+         </div>
+         <div className="flex flex-col gap-1">
+            <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs font-bold border border-red-200 w-fit">NÃO GESTANTE</span>
+            <span className="text-xs">Falha na inseminação, retorno ao cio ou aborto.</span>
+         </div>
+      </div>
+    </div>
+);
+
 const InseminacaoScreen: React.FC<{
   data: Inseminacao[];
   addInseminacao: (item: Inseminacao) => void;
@@ -1062,35 +1086,6 @@ const InseminacaoScreen: React.FC<{
       reader.readAsText(file);
       e.target.value = '';
   };
-
-  const StatusLegend = () => (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm">
-        <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
-           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-           </svg> 
-           Legenda de Status
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-gray-700">
-           <div className="flex flex-col gap-1">
-              <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold border border-green-200 w-fit">GESTANTE</span>
-              <span className="text-xs">Matriz inseminada, aguardando parto.</span>
-           </div>
-           <div className="flex flex-col gap-1">
-              <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs font-bold border border-purple-200 w-fit">LACTANTE</span>
-              <span className="text-xs">Pariu recentemente (até 28 dias), amamentando.</span>
-           </div>
-           <div className="flex flex-col gap-1">
-              <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded text-xs font-bold border border-gray-200 w-fit">VAZIA</span>
-              <span className="text-xs">Desmamada (pós-lactação), pronta p/ inseminar.</span>
-           </div>
-           <div className="flex flex-col gap-1">
-              <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs font-bold border border-red-200 w-fit">NÃO GESTANTE</span>
-              <span className="text-xs">Falha na inseminação, retorno ao cio ou aborto.</span>
-           </div>
-        </div>
-      </div>
-  );
 
   return (
     <div className="space-y-8 animate-[fadeIn_0.5s_ease-in-out] p-6">
@@ -1375,6 +1370,10 @@ const FichasScreen: React.FC<{
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Mumificados</label>
                                     <input type="number" min="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition-all" value={partoForm.mumificados} onChange={e => setPartoForm({...partoForm, mumificados: parseInt(e.target.value) || 0})} />
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Peso Médio (kg)</label>
+                                    <input type="number" step="0.01" min="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition-all" value={partoForm.pesoMedio} onChange={e => setPartoForm({...partoForm, pesoMedio: parseFloat(e.target.value) || 0})} />
+                                </div>
                             </div>
                             
                             <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100 flex justify-between items-center">
@@ -1438,7 +1437,7 @@ const App: React.FC = () => {
                     clearAllInseminacoes={clearAllInseminacoes}
                     importInseminacoes={importInseminacoes}
                     showToast={showToast}
-                    setActiveScreen={setActiveScreen as any}
+                    setActiveScreen={setActiveScreen}
                     setSelectedMatrizId={setSelectedMatrizId}
                 />;
             case 'gestacao':
@@ -1478,7 +1477,7 @@ const App: React.FC = () => {
                         <h1 className="text-lg font-bold text-gray-800 leading-tight">Gestão de Suínos</h1>
                         <p className="text-[10px] text-gray-500 uppercase font-semibold mt-1">Sistema de Controle por Matrizes</p>
                     </div>
-                </header>
+                </div>
                 <nav className="flex-1 p-4 space-y-2">
                     <NavItem screen="dashboard" icon={<LayoutGridIcon className="w-5 h-5"/>} label="Dashboard" />
                     <NavItem screen="inseminacao" icon={<EditIcon className="w-5 h-5"/>} label="Inseminação" />
