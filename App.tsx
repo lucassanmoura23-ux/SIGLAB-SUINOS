@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Inseminacao, Screen, Urgency, EventoManejo, EventosManejo, Parto, Matriz } from './types';
 import { useSwineData } from './hooks/useSwineData';
@@ -49,7 +48,6 @@ import {
 // ==================================
 
 const getStatusDisplay = (item: Inseminacao) => {
-    // Lógica para LACTANTE ou VAZIA (Pós-Parto)
     if (item.parto) {
         const dataParto = new Date(item.parto.dataRealParto + 'T00:00:00');
         const hoje = new Date();
@@ -108,7 +106,7 @@ const Modal: React.FC<{
                         </div>
                     </div>
                     <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button type="button" className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm" onClick={onClose}>
+                        <button type="button" className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm" onClick={onClose}>
                             Fechar
                         </button>
                     </div>
@@ -137,13 +135,13 @@ const ConfirmationModal: React.FC<{
         <div className="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
           <div className="px-4 pt-5 pb-4 bg-white sm:p-6 sm:pb-4">
             <div className="sm:flex sm:items-start">
-              <div className={`flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto rounded-full sm:mx-0 sm:h-10 sm:w-10 ${isDangerous ? 'bg-red-100' : 'bg-green-100'}`}>
+              <div className={`flex items-center justify-center flex-shrink-0 w-12 h-12 mx-auto rounded-full sm:mx-0 sm:h-10 sm:w-10 ${isDangerous ? 'bg-red-100' : 'bg-red-100'}`}>
                 {isDangerous ? (
                    <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                    </svg>
                 ) : (
-                   <svg className="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                    </svg>
                 )}
@@ -160,7 +158,7 @@ const ConfirmationModal: React.FC<{
             <button
               type="button"
               className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:ml-3 sm:w-auto sm:text-sm ${
-                isDangerous ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+                isDangerous ? 'bg-red-600 hover:bg-red-700' : 'bg-red-600 hover:bg-red-700'
               }`}
               onClick={onConfirm}
             >
@@ -184,7 +182,7 @@ const getUrgencyStyling = (urgency: Urgency) => {
   switch (urgency) {
     case 'vermelho': return { border: 'border-l-4 border-red-500', bg: 'bg-red-50', headerBg: 'bg-red-100' };
     case 'amarelo': return { border: 'border-l-4 border-yellow-500', bg: 'bg-yellow-50', headerBg: 'bg-yellow-100' };
-    case 'verde': return { border: 'border-l-4 border-green-500', bg: 'bg-green-50', headerBg: 'bg-green-100' };
+    case 'verde': return { border: 'border-l-4 border-red-500', bg: 'bg-red-50', headerBg: 'bg-red-100' };
   }
 };
 
@@ -195,19 +193,19 @@ const EventoItem: React.FC<{
   const diasPara = calcularDiasParaEvento(evento.dataPrevista);
   let statusBadge;
   if(evento.realizado) {
-    statusBadge = <span className="text-xs font-semibold text-green-700">Realizado em {formatarData(evento.dataRealizacao)}</span>
+    statusBadge = <span className="text-xs font-semibold text-red-700">Realizado em {formatarData(evento.dataRealizacao)}</span>
   } else if (diasPara > 0) {
     statusBadge = <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-full">Faltam {diasPara} dias</span>
   } else if (diasPara === 0) {
-    statusBadge = <span className="text-xs font-semibold text-green-800 bg-green-200 px-2 py-1 rounded-full animate-pulso">É HOJE!</span>
+    statusBadge = <span className="text-xs font-semibold text-red-800 bg-red-200 px-2 py-1 rounded-full animate-pulso">É HOJE!</span>
   } else {
     statusBadge = <span className="text-xs font-semibold text-red-700 bg-red-100 px-2 py-1 rounded-full">Atrasado {Math.abs(diasPara)} dias</span>
   }
 
   const getIcon = () => {
-    if (evento.nome.includes('Coli')) return <SyringeIcon className="w-6 h-6 text-green-700" />;
-    if (evento.nome.includes('Vermifugação')) return <PillIcon className="w-6 h-6 text-green-700" />;
-    if (evento.nome.includes('Transferência')) return <HospitalIcon className="w-6 h-6 text-green-700" />;
+    if (evento.nome.includes('Coli')) return <SyringeIcon className="w-6 h-6 text-red-700" />;
+    if (evento.nome.includes('Vermifugação')) return <PillIcon className="w-6 h-6 text-red-700" />;
+    if (evento.nome.includes('Transferência')) return <HospitalIcon className="w-6 h-6 text-red-700" />;
     return null;
   };
 
@@ -238,7 +236,7 @@ const EventoItem: React.FC<{
                     type="checkbox" 
                     checked={evento.realizado} 
                     onChange={handleCheckboxChange} 
-                    className="rounded text-green-600 focus:ring-green-600"
+                    className="rounded text-red-600 focus:ring-red-600"
                 />
                 <span className="font-medium">Marcar como realizado</span>
             </label>
@@ -250,7 +248,7 @@ const EventoItem: React.FC<{
                         type="date" 
                         value={evento.dataRealizacao || ''} 
                         onChange={(e) => onUpdate({ dataRealizacao: e.target.value })}
-                        className="text-sm p-1 border border-gray-300 rounded-md focus:ring-green-600 focus:border-green-600"
+                        className="text-sm p-1 border border-gray-300 rounded-md focus:ring-red-600 focus:border-red-600"
                     />
                 </div>
             )}
@@ -261,7 +259,7 @@ const EventoItem: React.FC<{
           placeholder="Adicionar observações..."
           value={evento.observacoes}
           onChange={(e) => onUpdate({ observacoes: e.target.value })}
-          className="w-full text-sm p-1.5 border border-gray-200 rounded-md focus:ring-green-600 focus:border-green-600"
+          className="w-full text-sm p-1.5 border border-gray-200 rounded-md focus:ring-red-600 focus:border-red-600"
         />
       </div>
     </div>
@@ -306,7 +304,7 @@ const GestationCard: React.FC<{matriz: Inseminacao, updateInseminacao: Function}
       </div>
       <div className="p-4 grid grid-cols-3 gap-2 text-center">
         <div>
-            <p className="text-2xl font-bold text-green-700">{diasGestacao}</p>
+            <p className="text-2xl font-bold text-red-700">{diasGestacao}</p>
             <p className="text-xs text-gray-600">Dias de Gestação</p>
         </div>
         <div>
@@ -314,7 +312,7 @@ const GestationCard: React.FC<{matriz: Inseminacao, updateInseminacao: Function}
             <p className="text-xs text-gray-600">Parto Previsto</p>
         </div>
         <div>
-            <p className="text-2xl font-bold text-green-700">{diasParaParto}</p>
+            <p className="text-2xl font-bold text-red-700">{diasParaParto}</p>
             <p className="text-xs text-gray-600">Dias p/ Parto</p>
         </div>
       </div>
@@ -378,33 +376,33 @@ const MatrizesScreen: React.FC<{
     return (
         <div className="p-6 space-y-6 animate-[fadeIn_0.5s_ease-in-out]">
             <div className={`bg-white p-6 rounded-lg shadow-md ${editingId ? 'border-2 border-yellow-400' : ''}`}>
-                <h2 className="text-xl font-bold text-green-700 mb-6">{editingId ? 'Editar Matriz' : 'Cadastrar Nova Matriz'}</h2>
+                <h2 className="text-xl font-bold text-red-700 mb-6">{editingId ? 'Editar Matriz' : 'Cadastrar Nova Matriz'}</h2>
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Brinco/Nº Matriz <span className="text-red-500">*</span></label>
-                        <input type="number" className="w-full p-2 border rounded focus:ring-green-600" value={form.numero || ''} onChange={e => setForm({...form, numero: parseInt(e.target.value) || 0})} required />
+                        <input type="number" placeholder="Brinco" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={form.numero || ''} onChange={e => setForm({...form, numero: parseInt(e.target.value) || 0})} required />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nome/Apelido</label>
-                        <input type="text" className="w-full p-2 border rounded focus:ring-green-600" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} />
+                        <input type="text" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Raça</label>
-                        <input type="text" className="w-full p-2 border rounded focus:ring-green-600" value={form.raca} onChange={e => setForm({...form, raca: e.target.value})} />
+                        <input type="text" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={form.raca} onChange={e => setForm({...form, raca: e.target.value})} />
                     </div>
                     
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Pai (Genealogia)</label>
-                        <input type="text" placeholder="Ex: Cachaço 400" className="w-full p-2 border rounded focus:ring-green-600" value={form.pai} onChange={e => setForm({...form, pai: e.target.value})} />
+                        <input type="text" placeholder="Ex: Cachaço 400" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={form.pai} onChange={e => setForm({...form, pai: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Mãe (Genealogia)</label>
-                        <input type="text" placeholder="Ex: Matriz 150" className="w-full p-2 border rounded focus:ring-green-600" value={form.mae} onChange={e => setForm({...form, mae: e.target.value})} />
+                        <input type="text" placeholder="Ex: Matriz 150" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={form.mae} onChange={e => setForm({...form, mae: e.target.value})} />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <select className="w-full p-2 border rounded focus:ring-green-600" value={form.status} onChange={e => setForm({...form, status: e.target.value as any})}>
+                        <select className="w-full p-2 border rounded focus:ring-red-600" value={form.status} onChange={e => setForm({...form, status: e.target.value as any})}>
                             <option value="ATIVA">Ativa</option>
                             <option value="INATIVA">Inativa</option>
                             <option value="DESCARTE">Descarte</option>
@@ -413,20 +411,20 @@ const MatrizesScreen: React.FC<{
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Data Nascimento</label>
-                        <input type="date" className="w-full p-2 border rounded focus:ring-green-600" value={form.dataNascimento} onChange={e => setForm({...form, dataNascimento: e.target.value})} />
+                        <input type="date" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={form.dataNascimento} onChange={e => setForm({...form, dataNascimento: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Data Entrada na Granja</label>
-                        <input type="date" className="w-full p-2 border rounded focus:ring-green-600" value={form.dataEntrada} onChange={e => setForm({...form, dataEntrada: e.target.value})} />
+                        <input type="date" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={form.dataEntrada} onChange={e => setForm({...form, dataEntrada: e.target.value})} />
                     </div>
 
                     <div className="md:col-span-3">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
-                        <textarea className="w-full p-2 border rounded focus:ring-green-600" rows={2} value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})}></textarea>
+                        <textarea className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" rows={2} value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})}></textarea>
                     </div>
                     <div className="md:col-span-3 flex justify-end gap-2">
                          {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ numero: 0, nome: '', raca: '', pai: '', mae: '', dataNascimento: '', dataEntrada: '', status: 'ATIVA', observacoes: '' }); }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded transition-colors">Cancelar</button>}
-                         <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700 flex items-center gap-2 shadow-sm transition-colors transition-all"><SaveIcon className="w-5 h-5"/> {editingId ? 'Atualizar' : 'Salvar'}</button>
+                         <button type="submit" className="bg-red-600 text-white px-6 py-2 rounded font-bold hover:bg-red-700 flex items-center gap-2 shadow-sm transition-colors transition-all"><SaveIcon className="w-5 h-5"/> {editingId ? 'Atualizar' : 'Salvar'}</button>
                     </div>
                 </form>
             </div>
@@ -435,7 +433,7 @@ const MatrizesScreen: React.FC<{
                 <div className="p-4 bg-gray-50 border-b font-bold text-gray-700">Fichas de Matrizes ({matrizes.length})</div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-green-50 text-green-700 font-bold uppercase text-xs">
+                        <thead className="bg-red-50 text-red-700 font-bold uppercase text-xs">
                             <tr>
                                 <th className="px-6 py-4">Nº Matriz</th>
                                 <th className="px-6 py-4">Nome</th>
@@ -527,7 +525,7 @@ const RankingTable: React.FC<{ data: { id: number, partos: number, vivos: number
                             <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
                                 <td className="py-3 px-4 font-bold border-r border-gray-300">{row.id}</td>
                                 <td className="py-3 px-4 border-r border-gray-300 text-center">{row.partos}</td>
-                                <td className="py-3 px-4 border-r border-gray-300 text-center font-bold text-green-700">{row.vivos}</td>
+                                <td className="py-3 px-4 border-r border-gray-300 text-center font-bold text-red-700">{row.vivos}</td>
                                 <td className="py-3 px-4 border-r border-gray-300 text-center">{row.mediaVivos.toFixed(1)}</td>
                                 <td className="py-3 px-4 flex justify-center">{renderClassification(row.mediaVivos)}</td>
                             </tr>
@@ -636,7 +634,7 @@ const DashboardScreen: React.FC<{ data: Inseminacao[], matrizesCount: number }> 
     ];
 
     // Aggregation Logic with Filters
-    const { filteredData, stats } = useMemo(() => {
+    const { stats } = useMemo(() => {
         const filtered = data.filter(item => {
              // 1. Matriz Filter
              const matrizMatch = filterMatriz ? item.numeroMatriz.toString() === filterMatriz : true;
@@ -713,7 +711,7 @@ const DashboardScreen: React.FC<{ data: Inseminacao[], matrizesCount: number }> 
         const monthLabels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
         const birthsChartData = monthLabels.map((label, i) => ({ label, value: birthsByMonth[i] }));
 
-        return { filteredData: filtered, stats: { totalCiclos, totalPartos, totalVivos, totalPerdas, rankingData, topProdutividade, birthsChartData } };
+        return { stats: { totalCiclos, totalPartos, totalVivos, totalPerdas, rankingData, topProdutividade, birthsChartData } };
     }, [data, filterYear, filterMonth, filterMatriz]);
 
     return (
@@ -733,7 +731,7 @@ const DashboardScreen: React.FC<{ data: Inseminacao[], matrizesCount: number }> 
                     <select 
                         value={filterYear} 
                         onChange={e => setFilterYear(e.target.value)}
-                        className="p-2 border rounded-md text-sm text-gray-700 focus:ring-green-600 focus:border-green-600"
+                        className="p-2 border rounded-md text-sm text-gray-700 focus:ring-red-600 focus:border-red-600"
                     >
                         <option value="">Todos os Anos</option>
                         {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
@@ -742,7 +740,7 @@ const DashboardScreen: React.FC<{ data: Inseminacao[], matrizesCount: number }> 
                     <select 
                         value={filterMonth} 
                         onChange={e => setFilterMonth(e.target.value)}
-                        className="p-2 border rounded-md text-sm text-gray-700 focus:ring-green-600 focus:border-green-600"
+                        className="p-2 border rounded-md text-sm text-gray-700 focus:ring-red-600 focus:border-red-600"
                     >
                         <option value="">Todos os Meses</option>
                         {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
@@ -751,7 +749,7 @@ const DashboardScreen: React.FC<{ data: Inseminacao[], matrizesCount: number }> 
                     <select 
                         value={filterMatriz} 
                         onChange={e => setFilterMatriz(e.target.value)}
-                        className="p-2 border rounded-md text-sm text-gray-700 focus:ring-green-600 focus:border-green-600"
+                        className="p-2 border rounded-md text-sm text-gray-700 focus:ring-red-600 focus:border-red-600"
                     >
                         <option value="">Todas Matrizes</option>
                         {availableMatrizes.map(m => <option key={m} value={m}>Matriz {m}</option>)}
@@ -908,7 +906,7 @@ const RelatoriosScreen: React.FC<{
               <html>
                   <head>
                       <title>Relatório IA - SIGLAB SUINOS</title>
-                      <style>body { font-family: sans-serif; padding: 40px; line-height: 1.6; } h1 { color: #166534; border-bottom: 2px solid #166534; padding-bottom: 10px; }</style>
+                      <style>body { font-family: sans-serif; padding: 40px; line-height: 1.6; } h1 { color: #b91c1c; border-bottom: 2px solid #b91c1c; padding-bottom: 10px; }</style>
                   </head>
                   <body>
                       <h1>Análise Zootécnica Inteligente</h1>
@@ -927,7 +925,7 @@ const RelatoriosScreen: React.FC<{
 
     return (
         <div className="space-y-6 p-6 animate-[fadeIn_0.5s_ease-in-out]">
-            <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-green-600">
+            <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-red-600">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
                     <div>
                         <h2 className="text-xl font-bold text-gray-800">Relatórios de Desempenho</h2>
@@ -939,7 +937,7 @@ const RelatoriosScreen: React.FC<{
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Selecione a Matriz</label>
                         <select 
-                            className="w-full p-2 border rounded focus:ring-green-600 font-medium text-gray-700" 
+                            className="w-full p-2 border rounded focus:ring-red-600 font-medium text-gray-700" 
                             value={selectedMatrizNumero || ''} 
                             onChange={e => setSelectedMatrizNumero(e.target.value)}
                         >
@@ -951,7 +949,7 @@ const RelatoriosScreen: React.FC<{
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Ano</label>
                         <select 
-                            className="w-full p-2 border rounded focus:ring-green-600 font-medium text-gray-700" 
+                            className="w-full p-2 border rounded focus:ring-red-600 font-medium text-gray-700" 
                             value={filterYear} 
                             onChange={e => setFilterYear(e.target.value)}
                         >
@@ -966,7 +964,7 @@ const RelatoriosScreen: React.FC<{
                 <div className="space-y-6">
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
-                            <h3 className="text-lg font-bold text-green-800 flex items-center gap-2">
+                            <h3 className="text-lg font-bold text-red-800 flex items-center gap-2">
                                <TrendingUpIcon className="w-6 h-6"/> KPIs - {selectedMatrizNumero === 'TODOS' ? 'Geral' : `Matriz ${selectedMatrizNumero}`}
                             </h3>
                             <div className="flex gap-2">
@@ -984,13 +982,13 @@ const RelatoriosScreen: React.FC<{
                                 <p className="text-3xl font-bold text-blue-700">{metrics.totalCiclos}</p>
                                 <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide mt-1">Ciclos</p>
                             </div>
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-100 text-center">
-                                <p className="text-3xl font-bold text-green-700">{metrics.partosRegistrados}</p>
-                                <p className="text-xs text-green-600 font-semibold uppercase tracking-wide mt-1">Partos</p>
+                            <div className="p-4 bg-red-50 rounded-lg border border-red-100 text-center">
+                                <p className="text-3xl font-bold text-red-700">{metrics.partosRegistrados}</p>
+                                <p className="text-xs text-red-600 font-semibold uppercase tracking-wide mt-1">Partos</p>
                             </div>
-                            <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-100 text-center">
-                                <p className="text-3xl font-bold text-emerald-700">{metrics.taxaParto.toFixed(1)}%</p>
-                                <p className="text-xs text-emerald-600 font-semibold uppercase tracking-wide mt-1">Taxa Parto</p>
+                            <div className="p-4 bg-red-50 rounded-lg border border-red-100 text-center">
+                                <p className="text-3xl font-bold text-red-700">{metrics.taxaParto.toFixed(1)}%</p>
+                                <p className="text-xs text-red-600 font-semibold uppercase tracking-wide mt-1">Taxa Parto</p>
                             </div>
                             <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-100 text-center">
                                 <p className="text-3xl font-bold text-indigo-700">{metrics.mediaNascidosVivos.toFixed(1)}</p>
@@ -1009,14 +1007,14 @@ const RelatoriosScreen: React.FC<{
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full text-sm text-left text-gray-500">
-                              <thead className="bg-green-50 text-green-700 uppercase text-xs font-bold">
+                              <thead className="bg-red-50 text-red-700 uppercase text-xs font-bold">
                                   <tr>
-                                      <th className="px-6 py-3">Matriz</th>
-                                      <th className="px-6 py-3">Inseminação</th>
-                                      <th className="px-6 py-3">Status</th>
-                                      <th className="px-6 py-3">Data Parto</th>
-                                      <th className="px-6 py-3 text-center">Nascidos Vivos</th>
-                                      <th className="px-6 py-3 text-center">Perdas</th>
+                                      <th className="px-6 py-3 text-red-700">Matriz</th>
+                                      <th className="px-6 py-3 text-red-700">Inseminação</th>
+                                      <th className="px-6 py-3 text-red-700">Status</th>
+                                      <th className="px-6 py-3 text-red-700">Data Parto</th>
+                                      <th className="px-6 py-3 text-center text-red-700">Nascidos Vivos</th>
+                                      <th className="px-6 py-3 text-center text-red-700">Perdas</th>
                                   </tr>
                               </thead>
                               <tbody>
@@ -1227,65 +1225,65 @@ const InseminacaoScreen: React.FC<{
   return (
     <div className="space-y-8 animate-[fadeIn_0.5s_ease-in-out] p-6">
         <div className={`bg-white p-6 rounded-lg shadow-md ${editingId ? 'border-2 border-yellow-400' : ''}`}>
-             <h2 className="text-xl font-bold text-green-700 mb-4">{editingId ? 'Editar Registro' : 'Novo Registro de Inseminação'}</h2>
+             <h2 className="text-xl font-bold text-red-700 mb-4">{editingId ? 'Editar Registro' : 'Novo Registro de Inseminação'}</h2>
              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Lote</label>
-                        <input type="text" placeholder="Ex: L001" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.lote} onChange={e => setFormState({...formState, lote: e.target.value})} />
+                        <input type="text" placeholder="Ex: L001" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={formState.lote} onChange={e => setFormState({...formState, lote: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nº Matriz <span className="text-red-500">*</span></label>
                         {matrizes.length > 0 ? (
-                            <select className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" required value={formState.numeroMatriz} onChange={e => setFormState({...formState, numeroMatriz: e.target.value})}>
+                            <select className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" required value={formState.numeroMatriz} onChange={e => setFormState({...formState, numeroMatriz: e.target.value})}>
                                 <option value="">-- Selecione a Matriz --</option>
-                                {matrizes.map(m => <option key={m.id} value={m.numero}>Matriz {m.numero} {m.nome ? `(${m.nome})` : ''}</option>)}
+                                {matrizes.filter(m => m.status === 'ATIVA').map(m => <option key={m.id} value={m.numero}>Matriz {m.numero} {m.nome ? `(${m.nome})` : ''}</option>)}
                             </select>
                         ) : (
-                            <input type="number" placeholder="Ex: 123" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" required value={formState.numeroMatriz} onChange={e => setFormState({...formState, numeroMatriz: e.target.value})} />
+                            <input type="number" placeholder="Brinco" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" required value={formState.numeroMatriz} onChange={e => setFormState({...formState, numeroMatriz: e.target.value})} />
                         )}
                         {matrizes.length === 0 && <p className="text-[10px] text-orange-600 mt-1">Dica: Cadastre matrizes primeiro para seleção rápida.</p>}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">1º Dia Inseminação <span className="text-red-500">*</span></label>
-                        <input type="date" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" required value={formState.primeiroDiaInseminacao} onChange={e => setFormState({...formState, primeiroDiaInseminacao: e.target.value})} />
+                        <input type="date" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" required value={formState.primeiroDiaInseminacao} onChange={e => setFormState({...formState, primeiroDiaInseminacao: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Último Dia Inseminação</label>
-                        <input type="date" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.ultimoDiaInseminacao} onChange={e => setFormState({...formState, ultimoDiaInseminacao: e.target.value})} />
+                        <input type="date" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={formState.ultimoDiaInseminacao} onChange={e => setFormState({...formState, ultimoDiaInseminacao: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nº Doses</label>
-                        <input type="number" placeholder="Ex: 2" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.numeroDoses} onChange={e => setFormState({...formState, numeroDoses: e.target.value})} />
+                        <input type="number" placeholder="Doses" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={formState.numeroDoses} onChange={e => setFormState({...formState, numeroDoses: e.target.value})} />
                     </div>
                     <div>
                          <label className="block text-sm font-medium text-gray-700 mb-1">Nº Macho</label>
-                         <input type="text" placeholder="Ex: M456" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.numeroMacho} onChange={e => setFormState({...formState, numeroMacho: e.target.value})} />
+                         <input type="text" placeholder="Ex: M456" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={formState.numeroMacho} onChange={e => setFormState({...formState, numeroMacho: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Data Retorno Cio</label>
-                        <input type="date" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.dataRetornoCio} onChange={e => setFormState({...formState, dataRetornoCio: e.target.value})} />
+                        <input type="date" className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={formState.dataRetornoCio} onChange={e => setFormState({...formState, dataRetornoCio: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Gestante <span className="text-red-500">*</span></label>
-                        <select className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.gestante} onChange={e => setFormState({...formState, gestante: e.target.value as 'SIM'|'NÃO'})}>
+                        <select className="w-full p-2 border rounded focus:ring-red-600 focus:border-red-600" value={formState.gestante} onChange={e => setFormState({...formState, gestante: e.target.value as 'SIM'|'NÃO'})}>
                             <option value="SIM">SIM</option>
                             <option value="NÃO">NÃO</option>
                         </select>
                     </div>
                 </div>
                 <div className="flex justify-end mt-6">
-                    <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded-md font-bold flex items-center gap-2 hover:bg-green-700 transition-colors"><SaveIcon className="w-5 h-5"/> {editingId ? 'Salvar Alterações' : 'Salvar Registro'}</button>
+                    <button type="submit" className="bg-red-600 text-white px-6 py-2 rounded-md font-bold flex items-center gap-2 hover:bg-red-700 transition-colors"><SaveIcon className="w-5 h-5"/> {editingId ? 'Salvar Alterações' : 'Salvar Registro'}</button>
                 </div>
              </form>
         </div>
         
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h2 className="text-xl font-bold text-green-700">Registros ({filteredData.length})</h2>
+                <h2 className="text-xl font-bold text-red-700">Registros ({filteredData.length})</h2>
                 <div className="flex gap-2">
                      <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".csv" className="hidden" />
-                     <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-green-600 text-white py-2 px-3 rounded hover:bg-green-700 text-sm"><UploadIcon className="h-4 w-4"/> Importar CSV</button>
+                     <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-red-600 text-white py-2 px-3 rounded hover:bg-red-700 text-sm"><UploadIcon className="h-4 w-4"/> Importar CSV</button>
                      <button onClick={() => exportToCSV(data)} className="flex items-center gap-2 bg-blue-600 text-white py-2 px-3 rounded hover:bg-blue-700 text-sm"><DownloadIcon className="h-4 w-4"/> Exportar CSV</button>
                      {data.length > 0 && (
                         <button onClick={() => setDeleteConfirmation({isOpen: true, type: 'all'})} className="flex items-center gap-2 bg-red-100 text-red-600 py-2 px-3 rounded hover:bg-red-200 text-sm border border-red-200"><TrashIcon className="h-4 w-4"/> Apagar Tudo</button>
@@ -1296,19 +1294,19 @@ const InseminacaoScreen: React.FC<{
             <StatusLegend />
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 p-4 bg-gray-50 rounded border border-gray-200">
-                <input type="text" placeholder="Filtrar Matriz..." className="p-2 border rounded text-sm focus:ring-green-600 focus:border-green-600" value={filterMatriz} onChange={e => setFilterMatriz(e.target.value)} />
-                <input type="text" placeholder="Filtrar Macho..." className="p-2 border rounded text-sm focus:ring-green-600 focus:border-green-600" value={filterMacho} onChange={e => setFilterMacho(e.target.value)} />
-                <select className="p-2 border rounded text-sm focus:ring-green-600 focus:border-green-600" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <input type="text" placeholder="Filtrar Matriz..." className="p-2 border rounded text-sm focus:ring-red-600 focus:border-red-600" value={filterMatriz} onChange={e => setFilterMatriz(e.target.value)} />
+                <input type="text" placeholder="Filtrar Macho..." className="p-2 border rounded text-sm focus:ring-red-600 focus:border-red-600" value={filterMacho} onChange={e => setFilterMacho(e.target.value)} />
+                <select className="p-2 border rounded text-sm focus:ring-red-600 focus:border-red-600" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                     <option value="TODOS">Todas Situações</option>
                     <option value="GESTANTE">Gestante</option>
                     <option value="LACTANTE">Lactante</option>
                     <option value="VAZIA">Vazia (Pós-Desmame)</option>
                     <option value="NÃO GESTANTE">Não Gestante</option>
                 </select>
-                <select className="p-2 border rounded text-sm focus:ring-green-600 focus:border-green-600" value={filterMonthInsem} onChange={e => setFilterMonthInsem(e.target.value)}>
+                <select className="p-2 border rounded text-sm focus:ring-red-600 focus:border-red-600" value={filterMonthInsem} onChange={e => setFilterMonthInsem(e.target.value)}>
                     {months.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
-                <select className="p-2 border rounded text-sm focus:ring-green-600 focus:border-green-600" value={filterMonthLastInsem} onChange={e => setFilterMonthLastInsem(e.target.value)}>
+                <select className="p-2 border rounded text-sm focus:ring-red-600 focus:border-red-600" value={filterMonthLastInsem} onChange={e => setFilterMonthLastInsem(e.target.value)}>
                     <option value="">Mês Último Insem. (Todos)</option>
                     {months.slice(1).map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                 </select>
@@ -1316,15 +1314,15 @@ const InseminacaoScreen: React.FC<{
 
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left text-gray-500">
-                    <thead className="text-xs text-green-900 uppercase bg-green-50/80 font-bold border-b border-green-100">
+                    <thead className="text-xs text-red-900 uppercase bg-red-50/80 font-bold border-b border-red-100">
                         <tr>
-                            <th className="px-6 py-4">Matriz</th>
-                            <th className="px-6 py-4">Lote</th>
-                            <th className="px-6 py-4">1ª Insem.</th>
-                            <th className="px-6 py-4">Últ. Insem.</th>
-                            <th className="px-6 py-4">Macho</th>
-                            <th className="px-6 py-4">Status</th>
-                            <th className="px-6 py-4">Ações</th>
+                            <th className="px-6 py-4 text-red-700">Matriz</th>
+                            <th className="px-6 py-4 text-red-700">Lote</th>
+                            <th className="px-6 py-4 text-red-700">1ª Insem.</th>
+                            <th className="px-6 py-4 text-red-700">Últ. Insem.</th>
+                            <th className="px-6 py-4 text-red-700">Macho</th>
+                            <th className="px-6 py-4 text-red-700">Status</th>
+                            <th className="px-6 py-4 text-red-700">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1450,7 +1448,7 @@ const FichasScreen: React.FC<{
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col h-[600px]">
-                    <div className="p-4 bg-green-50 border-b border-green-100 font-bold text-green-800 flex items-center gap-2">
+                    <div className="p-4 bg-red-50 border-b border-red-100 font-bold text-red-800 flex items-center gap-2">
                         <ClockIcon className="w-5 h-5"/> Próximos Partos
                     </div>
                     <div className="overflow-y-auto flex-1">
@@ -1462,7 +1460,7 @@ const FichasScreen: React.FC<{
                                  <div 
                                     key={item.id} 
                                     onClick={() => setSelectedId(item.id)}
-                                    className={`p-4 border-b cursor-pointer transition-all ${urgencyClass} ${selectedId === item.id ? 'ring-2 ring-inset ring-green-600' : ''}`}
+                                    className={`p-4 border-b cursor-pointer transition-all ${urgencyClass} ${selectedId === item.id ? 'ring-2 ring-inset ring-red-600' : ''}`}
                                  >
                                      <div className="flex justify-between items-center mb-1">
                                          <span className="font-bold text-gray-800">Matriz {item.numeroMatriz}</span>
@@ -1485,7 +1483,7 @@ const FichasScreen: React.FC<{
                     {selectedId && selectedMatriz ? (
                         <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 animate-[fadeIn_0.3s_ease-in-out]">
                             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
-                                <div className="bg-green-100 p-3 rounded-full"><HospitalIcon className="w-6 h-6 text-green-700"/></div>
+                                <div className="bg-red-100 p-3 rounded-full"><HospitalIcon className="w-6 h-6 text-red-700"/></div>
                                 <div>
                                     <h3 className="text-xl font-bold text-gray-800">Registrar Parto - Matriz {selectedMatriz.numeroMatriz}</h3>
                                     <p className="text-sm text-gray-500">Inseminada em {formatarData(selectedMatriz.primeiroDiaInseminacao)} • Lote {selectedMatriz.lote}</p>
@@ -1495,19 +1493,19 @@ const FichasScreen: React.FC<{
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Data Real do Parto</label>
-                                    <input type="date" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition-all" value={partoForm.dataRealParto} onChange={e => setPartoForm({...partoForm, dataRealParto: e.target.value})} />
+                                    <input type="date" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all" value={partoForm.dataRealParto} onChange={e => setPartoForm({...partoForm, dataRealParto: e.target.value})} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Nascidos Vivos</label>
-                                    <input type="number" min="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition-all" value={partoForm.nascidosVivos} onChange={e => setPartoForm({...partoForm, nascidosVivos: parseInt(e.target.value) || 0})} />
+                                    <input type="number" min="0" placeholder="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all" value={partoForm.nascidosVivos || ''} onChange={e => setPartoForm({...partoForm, nascidosVivos: parseInt(e.target.value) || 0})} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Natimortos</label>
-                                    <input type="number" min="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition-all" value={partoForm.natimortos} onChange={e => setPartoForm({...partoForm, natimortos: parseInt(e.target.value) || 0})} />
+                                    <input type="number" min="0" placeholder="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all" value={partoForm.natimortos || ''} onChange={e => setPartoForm({...partoForm, natimortos: parseInt(e.target.value) || 0})} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Mumificados</label>
-                                    <input type="number" min="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition-all" value={partoForm.mumificados} onChange={e => setPartoForm({...partoForm, mumificados: parseInt(e.target.value) || 0})} />
+                                    <input type="number" min="0" placeholder="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all" value={partoForm.mumificados || ''} onChange={e => setPartoForm({...partoForm, mumificados: parseInt(e.target.value) || 0})} />
                                 </div>
                             </div>
                             
@@ -1518,7 +1516,7 @@ const FichasScreen: React.FC<{
 
                             <div className="flex justify-end gap-3 mt-8">
                                 <button onClick={() => setSelectedId(null)} className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors">Cancelar</button>
-                                <button onClick={handleSaveParto} className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold flex items-center gap-2 shadow-lg shadow-green-600/20 transition-all transform hover:scale-105">
+                                <button onClick={handleSaveParto} className="px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold flex items-center gap-2 shadow-lg shadow-red-600/20 transition-all transform hover:scale-105">
                                     <SaveIcon className="w-5 h-5"/> Confirmar Parto
                                 </button>
                             </div>
@@ -1562,10 +1560,27 @@ const App: React.FC = () => {
         setTimeout(() => setToast(prev => ({ ...prev, visible: false })), 3000);
     };
 
+    // REGRA: Descartar matriz se acumular 4 falhas (Não Gestante)
+    useEffect(() => {
+        if (loading) return;
+        matrizes.forEach(m => {
+            if (m.status === 'ATIVA') {
+                const falhas = data.filter(i => i.numeroMatriz === m.numero && i.gestante === 'NÃO').length;
+                if (falhas >= 4) {
+                    updateMatriz(m.id, { 
+                        status: 'DESCARTE', 
+                        observacoes: (m.observacoes ? m.observacoes + '\n' : '') + 'DESCARTE AUTOMÁTICO: Acumulou 4 inseminações com resultado NÃO GESTANTE.' 
+                    });
+                    showToast(`⚠️ Matriz ${m.numero} marcada para descarte por falha recorrente (4x).`);
+                }
+            }
+        });
+    }, [data, matrizes, updateMatriz, loading]);
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
             </div>
         );
     }
@@ -1573,7 +1588,7 @@ const App: React.FC = () => {
     const renderScreen = () => {
         switch(activeScreen) {
             case 'dashboard':
-                return <DashboardScreen data={data} matrizesCount={matrizes.length} />;
+                return <DashboardScreen data={data} matrizesCount={matrizes.filter(m => m.status === 'ATIVA').length} />;
             case 'matrizes':
                 return <MatrizesScreen 
                     matrizes={matrizes} 
@@ -1602,14 +1617,14 @@ const App: React.FC = () => {
             case 'relatorios':
                 return <RelatoriosScreen data={data} showToast={showToast} />;
             default:
-                return <DashboardScreen data={data} matrizesCount={matrizes.length} />;
+                return <DashboardScreen data={data} matrizesCount={matrizes.filter(m => m.status === 'ATIVA').length} />;
         }
     };
 
     const NavItem: React.FC<{ screen: Screen, icon: React.ReactNode, label: string }> = ({ screen, icon, label }) => (
         <button 
             onClick={() => setActiveScreen(screen)} 
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors transition-all ${activeScreen === screen ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-green-50'}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors transition-all ${activeScreen === screen ? 'bg-red-600 text-white shadow-md' : 'text-gray-600 hover:bg-red-50'}`}
         >
             {icon}
             <span className="font-medium">{label}</span>
@@ -1622,7 +1637,7 @@ const App: React.FC = () => {
             <aside className="w-64 bg-white border-r border-gray-200 fixed h-full z-10 hidden md:flex flex-col">
                 <div className="p-6 border-b border-gray-100 flex flex-col items-center text-center gap-3">
                     <div>
-                        <h1 className="text-2xl font-black text-green-700 tracking-tighter leading-tight">SIGLAB SUINOS</h1>
+                        <h1 className="text-2xl font-black text-red-700 tracking-tighter leading-tight">SIGLAB SUINOS</h1>
                         <p className="text-[10px] text-gray-500 uppercase font-semibold mt-1">Sistema de Controle por Matrizes</p>
                     </div>
                 </div>
@@ -1641,19 +1656,19 @@ const App: React.FC = () => {
 
             {/* Mobile Nav */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 flex justify-around p-2 shadow-lg">
-                 <button onClick={() => setActiveScreen('dashboard')} title="Dashboard" className={`p-2 rounded-full transition-all ${activeScreen === 'dashboard' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><LayoutGridIcon className="w-6 h-6"/></button>
-                 <button onClick={() => setActiveScreen('matrizes')} title="Matrizes" className={`p-2 rounded-full transition-all ${activeScreen === 'matrizes' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><UsersIcon className="w-6 h-6"/></button>
-                 <button onClick={() => setActiveScreen('inseminacao')} title="Inseminação" className={`p-2 rounded-full transition-all ${activeScreen === 'inseminacao' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><EditIcon className="w-6 h-6"/></button>
-                 <button onClick={() => setActiveScreen('gestacao')} title="Gestação" className={`p-2 rounded-full transition-all ${activeScreen === 'gestacao' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><ClockIcon className="w-6 h-6"/></button>
-                 <button onClick={() => setActiveScreen('fichas')} title="Maternidade" className={`p-2 rounded-full transition-all ${activeScreen === 'fichas' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><FileTextIcon className="w-6 h-6"/></button>
-                 <button onClick={() => setActiveScreen('relatorios')} title="Relatórios" className={`p-2 rounded-full transition-all ${activeScreen === 'relatorios' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><BarChartIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('dashboard')} title="Dashboard" className={`p-2 rounded-full transition-all ${activeScreen === 'dashboard' ? 'text-red-600 bg-red-50' : 'text-gray-500'}`}><LayoutGridIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('matrizes')} title="Matrizes" className={`p-2 rounded-full transition-all ${activeScreen === 'matrizes' ? 'text-red-600 bg-red-50' : 'text-gray-500'}`}><UsersIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('inseminacao')} title="Inseminação" className={`p-2 rounded-full transition-all ${activeScreen === 'inseminacao' ? 'text-red-600 bg-red-50' : 'text-gray-500'}`}><EditIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('gestacao')} title="Gestação" className={`p-2 rounded-full transition-all ${activeScreen === 'gestacao' ? 'text-red-600 bg-red-50' : 'text-gray-500'}`}><ClockIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('fichas')} title="Maternidade" className={`p-2 rounded-full transition-all ${activeScreen === 'fichas' ? 'text-red-600 bg-red-50' : 'text-gray-500'}`}><FileTextIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('relatorios')} title="Relatórios" className={`p-2 rounded-full transition-all ${activeScreen === 'relatorios' ? 'text-red-600 bg-red-50' : 'text-gray-500'}`}><BarChartIcon className="w-6 h-6"/></button>
             </div>
 
             {/* Main Content */}
             <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto mb-16 md:mb-0">
                 <header className="flex items-center gap-3 mb-8 md:hidden bg-white p-4 rounded-lg shadow-sm border border-gray-100">
                     <div>
-                        <h1 className="text-xl font-black text-green-700 tracking-tighter">SIGLAB SUINOS</h1>
+                        <h1 className="text-xl font-black text-red-700 tracking-tighter">SIGLAB SUINOS</h1>
                         <p className="text-[10px] text-gray-500 font-medium">Controle por Matrizes</p>
                     </div>
                 </header>
@@ -1663,7 +1678,7 @@ const App: React.FC = () => {
             {/* Toast Notification */}
             {toast.visible && (
                 <div className="fixed bottom-4 right-4 md:bottom-8 md:right-8 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slideUp z-[100]">
-                    <CheckCircleIcon className="w-5 h-5 text-green-400" />
+                    <CheckCircleIcon className="w-5 h-5 text-red-400" />
                     <span className="font-medium">{toast.message}</span>
                 </div>
             )}
