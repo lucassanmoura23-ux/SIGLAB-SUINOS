@@ -1,3 +1,4 @@
+
 export interface EventoManejo {
   nome: string;
   diaGestacao: number;
@@ -23,6 +24,20 @@ export interface Parto {
   totalLeitoes: number;
 }
 
+export interface Matriz {
+  id: string;
+  numero: number;
+  nome: string;
+  raca: string;
+  peso?: number; // Peso da matriz em kg
+  pai: string; // Genealogia
+  mae: string; // Genealogia
+  dataNascimento: string;
+  dataEntrada: string;
+  status: 'ATIVA' | 'INATIVA' | 'DESCARTE';
+  observacoes: string;
+}
+
 export interface Inseminacao {
   id: string;
   usuarioId: string;
@@ -39,6 +54,6 @@ export interface Inseminacao {
   parto: Parto | null;
 }
 
-export type Screen = 'dashboard' | 'inseminacao' | 'gestacao' | 'fichas' | 'relatorios';
+export type Screen = 'dashboard' | 'matrizes' | 'inseminacao' | 'gestacao' | 'fichas' | 'relatorios';
 
 export type Urgency = 'vermelho' | 'amarelo' | 'verde';

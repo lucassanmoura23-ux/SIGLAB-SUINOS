@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Inseminacao, Screen, Urgency, EventoManejo, EventosManejo, Parto } from './types';
+import { Inseminacao, Screen, Urgency, EventoManejo, EventosManejo, Parto, Matriz } from './types';
 import { useSwineData } from './hooks/useSwineData';
 import { GoogleGenAI } from "@google/genai";
 import {
@@ -12,6 +13,7 @@ import {
   calcularDiasParaParto,
   calcularDataParto,
   calcularDiasParaEvento,
+  calcularIdade,
   exportToCSV,
   parseCSV
 } from './utils';
@@ -21,6 +23,7 @@ import {
   EyeIcon,
   EditIcon,
   PigIcon,
+  UsersIcon,
   ChevronDownIcon,
   SyringeIcon,
   PillIcon,
@@ -52,18 +55,15 @@ const getStatusDisplay = (item: Inseminacao) => {
         const hoje = new Date();
         hoje.setHours(0,0,0,0);
         
-        // Diferença em milissegundos convertida para dias
         const diffTime = hoje.getTime() - dataParto.getTime();
         const diasPosParto = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        // Período de lactação considerado: até 28 dias
         if (diasPosParto >= 0 && diasPosParto <= 28) {
             return { 
                 label: 'LACTANTE', 
                 style: 'bg-purple-100 text-purple-800 border border-purple-200' 
             };
         } else {
-            // Passou de 28 dias do parto = VAZIA (Desmamada)
             return { 
                 label: 'VAZIA', 
                 style: 'bg-gray-100 text-gray-800 border border-gray-200' 
@@ -71,7 +71,6 @@ const getStatusDisplay = (item: Inseminacao) => {
         }
     }
 
-    // Lógica para GESTANTE
     if (item.gestante === 'SIM') {
         return { 
             label: 'GESTANTE', 
@@ -79,7 +78,6 @@ const getStatusDisplay = (item: Inseminacao) => {
         };
     }
 
-    // Lógica para NÃO GESTANTE (Não Gestante/Falha na Inseminação)
     return { 
         label: 'NÃO GESTANTE', 
         style: 'bg-red-100 text-red-800 border border-red-200' 
@@ -337,6 +335,154 @@ const GestationCard: React.FC<{matriz: Inseminacao, updateInseminacao: Function}
 // SCREENS (PAGE COMPONENTS)
 // ==================================
 
+// --- MATRIZES SCREEN (CADASTRO) ---
+const MatrizesScreen: React.FC<{
+    matrizes: Matriz[];
+    addMatriz: (m: Matriz) => void;
+    updateMatriz: (id: string, m: Partial<Matriz>) => void;
+    removeMatriz: (id: string) => void;
+    showToast: (msg: string) => void;
+}> = ({ matrizes, addMatriz, updateMatriz, removeMatriz, showToast }) => {
+    const [form, setForm] = useState<Omit<Matriz, 'id'>>({
+        numero: 0,
+        nome: '',
+        raca: '',
+        pai: '',
+        mae: '',
+        dataNascimento: '',
+        dataEntrada: '',
+        status: 'ATIVA',
+        observacoes: ''
+    });
+    const [editingId, setEditingId] = useState<string | null>(null);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (form.numero <= 0) {
+            showToast("❌ Número da matriz é obrigatório.");
+            return;
+        }
+
+        if (editingId) {
+            updateMatriz(editingId, form);
+            showToast("✅ Matriz atualizada com sucesso.");
+        } else {
+            addMatriz({ ...form, id: gerarUUID() });
+            showToast("✅ Matriz cadastrada com sucesso.");
+        }
+
+        setForm({ numero: 0, nome: '', raca: '', pai: '', mae: '', dataNascimento: '', dataEntrada: '', status: 'ATIVA', observacoes: '' });
+        setEditingId(null);
+    };
+
+    return (
+        <div className="p-6 space-y-6 animate-[fadeIn_0.5s_ease-in-out]">
+            <div className={`bg-white p-6 rounded-lg shadow-md ${editingId ? 'border-2 border-yellow-400' : ''}`}>
+                <h2 className="text-xl font-bold text-green-700 mb-6">{editingId ? 'Editar Matriz' : 'Cadastrar Nova Matriz'}</h2>
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Brinco/Nº Matriz <span className="text-red-500">*</span></label>
+                        <input type="number" className="w-full p-2 border rounded focus:ring-green-600" value={form.numero || ''} onChange={e => setForm({...form, numero: parseInt(e.target.value) || 0})} required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome/Apelido</label>
+                        <input type="text" className="w-full p-2 border rounded focus:ring-green-600" value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Raça</label>
+                        <input type="text" className="w-full p-2 border rounded focus:ring-green-600" value={form.raca} onChange={e => setForm({...form, raca: e.target.value})} />
+                    </div>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Pai (Genealogia)</label>
+                        <input type="text" placeholder="Ex: Cachaço 400" className="w-full p-2 border rounded focus:ring-green-600" value={form.pai} onChange={e => setForm({...form, pai: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Mãe (Genealogia)</label>
+                        <input type="text" placeholder="Ex: Matriz 150" className="w-full p-2 border rounded focus:ring-green-600" value={form.mae} onChange={e => setForm({...form, mae: e.target.value})} />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select className="w-full p-2 border rounded focus:ring-green-600" value={form.status} onChange={e => setForm({...form, status: e.target.value as any})}>
+                            <option value="ATIVA">Ativa</option>
+                            <option value="INATIVA">Inativa</option>
+                            <option value="DESCARTE">Descarte</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Data Nascimento</label>
+                        <input type="date" className="w-full p-2 border rounded focus:ring-green-600" value={form.dataNascimento} onChange={e => setForm({...form, dataNascimento: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Data Entrada na Granja</label>
+                        <input type="date" className="w-full p-2 border rounded focus:ring-green-600" value={form.dataEntrada} onChange={e => setForm({...form, dataEntrada: e.target.value})} />
+                    </div>
+
+                    <div className="md:col-span-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
+                        <textarea className="w-full p-2 border rounded focus:ring-green-600" rows={2} value={form.observacoes} onChange={e => setForm({...form, observacoes: e.target.value})}></textarea>
+                    </div>
+                    <div className="md:col-span-3 flex justify-end gap-2">
+                         {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ numero: 0, nome: '', raca: '', pai: '', mae: '', dataNascimento: '', dataEntrada: '', status: 'ATIVA', observacoes: '' }); }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded transition-colors">Cancelar</button>}
+                         <button type="submit" className="bg-green-600 text-white px-6 py-2 rounded font-bold hover:bg-green-700 flex items-center gap-2 shadow-sm transition-colors transition-all"><SaveIcon className="w-5 h-5"/> {editingId ? 'Atualizar' : 'Salvar'}</button>
+                    </div>
+                </form>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="p-4 bg-gray-50 border-b font-bold text-gray-700">Fichas de Matrizes ({matrizes.length})</div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-green-50 text-green-700 font-bold uppercase text-xs">
+                            <tr>
+                                <th className="px-6 py-4">Nº Matriz</th>
+                                <th className="px-6 py-4">Nome</th>
+                                <th className="px-6 py-4">Idade</th>
+                                <th className="px-6 py-4">Genealogia (P/M)</th>
+                                <th className="px-6 py-4">Raça</th>
+                                <th className="px-6 py-4 text-center">Status</th>
+                                <th className="px-6 py-4">Entrada</th>
+                                <th className="px-6 py-4 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {matrizes.map(m => (
+                                <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-6 py-4 font-bold text-gray-900">{m.numero}</td>
+                                    <td className="px-6 py-4">{m.nome || '-'}</td>
+                                    <td className="px-6 py-4 font-semibold text-blue-600">{calcularIdade(m.dataNascimento)}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-[10px] text-gray-400 font-semibold uppercase">P: <span className="text-gray-600">{m.pai || '?'}</span></div>
+                                        <div className="text-[10px] text-gray-400 font-semibold uppercase">M: <span className="text-gray-600">{m.mae || '?'}</span></div>
+                                    </td>
+                                    <td className="px-6 py-4">{m.raca || '-'}</td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${m.status === 'ATIVA' ? 'bg-green-100 text-green-800' : m.status === 'DESCARTE' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                                            {m.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-xs">{formatarData(m.dataEntrada)}</td>
+                                    <td className="px-6 py-4 flex gap-2 justify-center">
+                                        <button onClick={() => { setEditingId(m.id); setForm(m); window.scrollTo(0,0); }} title="Editar" className="text-yellow-600 hover:text-yellow-800 transition-colors"><EditIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => removeMatriz(m.id)} title="Excluir" className="text-red-600 hover:text-red-800 transition-colors"><TrashIcon className="w-5 h-5"/></button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {matrizes.length === 0 && (
+                                <tr>
+                                    <td colSpan={8} className="text-center py-8 text-gray-400">Nenhuma matriz cadastrada.</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 // --- DASHBOARD SCREEN ---
 
 const KPICard: React.FC<{ title: string, value: string | number, subtext: string, icon: React.ReactNode, color: string }> = ({ title, value, subtext, icon, color }) => {
@@ -388,7 +534,7 @@ const RankingTable: React.FC<{ data: { id: number, partos: number, vivos: number
                         ))}
                          {data.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="py-8 text-center text-gray-500 italic">Sem dados de partos suficientes para o ranking.</td>
+                                <td colSpan={5} className="py-8 text-center text-gray-500 italic">Sem dados de partos suficientes para the ranking.</td>
                             </tr>
                         )}
                     </tbody>
@@ -465,7 +611,7 @@ const HorizontalBarChart: React.FC<{ data: { label: string, vivos: number, perda
     );
 };
 
-const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
+const DashboardScreen: React.FC<{ data: Inseminacao[], matrizesCount: number }> = ({ data, matrizesCount }) => {
     // Filters State
     const [filterYear, setFilterYear] = useState('');
     const [filterMonth, setFilterMonth] = useState('');
@@ -496,7 +642,6 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
              const matrizMatch = filterMatriz ? item.numeroMatriz.toString() === filterMatriz : true;
 
              // Date references
-             const dataInsem = new Date(item.primeiroDiaInseminacao + 'T00:00:00');
              const dataParto = item.parto ? new Date(item.parto.dataRealParto + 'T00:00:00') : null;
 
              // 2. Year Filter
@@ -540,14 +685,11 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
                 m.perdas += (item.parto.natimortos + item.parto.mumificados);
                 m.totalLeitoes += item.parto.totalLeitoes;
 
-                // Births by month calc (Robust parsing)
                 if (item.parto.dataRealParto) {
                     const parts = item.parto.dataRealParto.split('-');
                     if (parts.length === 3) {
-                         // YYYY-MM-DD
                          const monthIndex = parseInt(parts[1]) - 1; // 0-11
                          if (monthIndex >= 0 && monthIndex < 12) {
-                             // Counting live born piglets instead of birth events
                              birthsByMonth[monthIndex] += item.parto.nascidosVivos;
                          }
                     }
@@ -558,13 +700,11 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
         
         const matrizStats = Array.from(matrizMap.values());
         
-        // Calculate ranking data based on PRODUCTIVITY (Leitões Vivos)
         const rankingData = matrizStats.map(m => ({
             ...m,
             mediaVivos: m.partos > 0 ? m.vivos / m.partos : 0,
             taxa: m.ciclos > 0 ? (m.partos / m.ciclos) * 100 : 0
         })).sort((a,b) => {
-             // Sort by Total Vivos (Quem produziu mais leitões)
              return b.vivos - a.vivos;
         });
         
@@ -584,7 +724,6 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
                     <span className="text-sm text-gray-500">Visão consolidada do rebanho</span>
                 </div>
                 
-                {/* Filter Bar */}
                 <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 flex flex-wrap gap-3 items-center">
                     <div className="flex items-center gap-2 text-gray-500 mr-2">
                         <FilterIcon className="w-5 h-5" />
@@ -629,8 +768,14 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
                 </div>
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <KPICard 
+                    title="Total de Matrizes" 
+                    value={matrizesCount} 
+                    subtext="Cadastradas" 
+                    icon={<UsersIcon className="w-6 h-6 text-emerald-700"/>} 
+                    color="text-emerald-700" 
+                />
                 <KPICard 
                     title="Total de Ciclos" 
                     value={stats.totalCiclos} 
@@ -641,7 +786,7 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
                 <KPICard 
                     title="Total de Partos" 
                     value={stats.totalPartos} 
-                    subtext="Partos confirmados" 
+                    subtext="Confirmados" 
                     icon={<CheckCircleIcon className="w-6 h-6 text-green-700"/>} 
                     color="text-green-700" 
                 />
@@ -661,7 +806,6 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
                 />
             </div>
 
-            {/* Partos Realizados por Mês Chart */}
             <div className="mb-6 w-full">
                 <VerticalBarChart 
                     title="Quantos Porcos Nasceram por Mês" 
@@ -671,7 +815,6 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Ranking Table Replacement */}
                 <RankingTable 
                     data={stats.rankingData.map(m => ({ 
                         id: m.id, 
@@ -681,7 +824,6 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
                     }))} 
                 />
 
-                {/* Chart 2: Produtividade da Matriz (Leitões Pariu) */}
                 <HorizontalBarChart 
                     title="Top 10 - Total Leitões Produzidos (Vivos + Perdas)"
                     data={stats.topProdutividade.map(m => ({ label: m.id.toString(), vivos: m.vivos, perdas: m.perdas }))}
@@ -691,7 +833,7 @@ const DashboardScreen: React.FC<{ data: Inseminacao[] }> = ({ data }) => {
     );
 };
 
-// --- RELATÓRIOS SCREEN (NEW SCREEN) ---
+// --- RELATÓRIOS SCREEN ---
 
 const RelatoriosScreen: React.FC<{ 
     data: Inseminacao[], 
@@ -749,7 +891,7 @@ const RelatoriosScreen: React.FC<{
                 prompt = `Analise o histórico da Matriz Suína ${selectedMatrizNumero}${filterYear ? ` em ${filterYear}` : ''}. Dados: ${history.map(h => `Insem: ${h.primeiroDiaInseminacao}, Parto: ${h.parto ? 'Sim ('+h.parto.totalLeitoes+' leitões, '+h.parto.nascidosVivos+' vivos)' : 'Não'}`).join('; ')}. Resuma performance produtiva e reprodutiva.`;
             }
             
-            const response = await ai.models.generateContent({ model: 'gemini-2.5-flash', contents: prompt });
+            const response = await ai.models.generateContent({ model: 'gemini-3-flash-preview', contents: prompt });
             setAiReport(response.text);
             setShowAIModal(true);
         } catch (e) {
@@ -765,7 +907,7 @@ const RelatoriosScreen: React.FC<{
             w.document.write(`
               <html>
                   <head>
-                      <title>Relatório IA - Gestão Suíno</title>
+                      <title>Relatório IA - SIGLAB SUINOS</title>
                       <style>body { font-family: sans-serif; padding: 40px; line-height: 1.6; } h1 { color: #166534; border-bottom: 2px solid #166534; padding-bottom: 10px; }</style>
                   </head>
                   <body>
@@ -822,7 +964,6 @@ const RelatoriosScreen: React.FC<{
 
             {selectedMatrizNumero && (
                 <div className="space-y-6">
-                    {/* KPI Dashboard */}
                     <div className="bg-white p-6 rounded-lg shadow-md">
                         <div className="flex justify-between items-center mb-6 pb-2 border-b border-gray-100">
                             <h3 className="text-lg font-bold text-green-800 flex items-center gap-2">
@@ -862,7 +1003,6 @@ const RelatoriosScreen: React.FC<{
                         </div>
                     </div>
 
-                    {/* History Table */}
                     <div className="bg-white rounded-lg shadow overflow-hidden">
                         <div className="p-4 bg-gray-50 border-b font-bold text-gray-700 flex items-center gap-2">
                             <FileTextIcon className="w-5 h-5"/> Histórico Detalhado
@@ -916,38 +1056,9 @@ const RelatoriosScreen: React.FC<{
 };
 
 // --- INSEMINAÇÃO SCREEN ---
-
-const StatusLegend = () => (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm">
-      <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
-         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-         </svg> 
-         Legenda de Status
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-gray-700">
-         <div className="flex flex-col gap-1">
-            <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold border border-green-200 w-fit">GESTANTE</span>
-            <span className="text-xs">Matriz inseminada, aguardando parto.</span>
-         </div>
-         <div className="flex flex-col gap-1">
-            <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs font-bold border border-purple-200 w-fit">LACTANTE</span>
-            <span className="text-xs">Pariu recentemente (até 28 dias), amamentando.</span>
-         </div>
-         <div className="flex flex-col gap-1">
-            <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded text-xs font-bold border border-gray-200 w-fit">VAZIA</span>
-            <span className="text-xs">Desmamada (pós-lactação), pronta p/ inseminar.</span>
-         </div>
-         <div className="flex flex-col gap-1">
-            <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs font-bold border border-red-200 w-fit">NÃO GESTANTE</span>
-            <span className="text-xs">Falha na inseminação, retorno ao cio ou aborto.</span>
-         </div>
-      </div>
-    </div>
-);
-
 const InseminacaoScreen: React.FC<{
   data: Inseminacao[];
+  matrizes: Matriz[];
   addInseminacao: (item: Inseminacao) => void;
   updateInseminacao: (id: string, updatedItem: Partial<Inseminacao>) => void;
   removeInseminacao: (id: string) => void;
@@ -956,7 +1067,7 @@ const InseminacaoScreen: React.FC<{
   showToast: (message: string) => void;
   setActiveScreen: (screen: Screen) => void;
   setSelectedMatrizId: (id: string | null) => void;
-}> = ({ data, addInseminacao, updateInseminacao, removeInseminacao, clearAllInseminacoes, importInseminacoes, showToast, setActiveScreen, setSelectedMatrizId }) => {
+}> = ({ data, matrizes, addInseminacao, updateInseminacao, removeInseminacao, clearAllInseminacoes, importInseminacoes, showToast, setActiveScreen, setSelectedMatrizId }) => {
   const [formState, setFormState] = useState({
     lote: '',
     numeroMatriz: '',
@@ -971,7 +1082,6 @@ const InseminacaoScreen: React.FC<{
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; type: 'single' | 'all'; id?: string }>({ isOpen: false, type: 'single' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filters for Inseminacao Table
   const [filterMatriz, setFilterMatriz] = useState('');
   const [filterMacho, setFilterMacho] = useState('');
   const [filterStatus, setFilterStatus] = useState('TODOS');
@@ -991,7 +1101,6 @@ const InseminacaoScreen: React.FC<{
         const matchMatriz = filterMatriz ? item.numeroMatriz.toString().includes(filterMatriz) : true;
         const matchMacho = filterMacho ? (item.numeroMacho || '').toLowerCase().includes(filterMacho.toLowerCase()) : true;
         
-        // Status matching using calculated status
         const currentStatus = getStatusDisplay(item).label;
         const matchStatus = filterStatus === 'TODOS' ? true : currentStatus === filterStatus;
         
@@ -1010,7 +1119,6 @@ const InseminacaoScreen: React.FC<{
                  if (d.getMonth().toString() !== filterMonthLastInsem) matchMonthLastInsem = false;
             }
         } else {
-             // If filter is empty, we don't care if date is null or not
              matchMonthLastInsem = true;
         }
 
@@ -1087,27 +1195,61 @@ const InseminacaoScreen: React.FC<{
       e.target.value = '';
   };
 
+  const StatusLegend = () => (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm">
+        <h3 className="font-bold text-blue-800 mb-2 flex items-center gap-2">
+           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+           </svg> 
+           Legenda de Status
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-gray-700">
+           <div className="flex flex-col gap-1">
+              <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs font-bold border border-green-200 w-fit">GESTANTE</span>
+              <span className="text-xs">Matriz inseminada, aguardando parto.</span>
+           </div>
+           <div className="flex flex-col gap-1">
+              <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs font-bold border border-purple-200 w-fit">LACTANTE</span>
+              <span className="text-xs">Pariu recentemente (até 28 dias), amamentando.</span>
+           </div>
+           <div className="flex flex-col gap-1">
+              <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded text-xs font-bold border border-gray-200 w-fit">VAZIA</span>
+              <span className="text-xs">Desmamada (pós-lactação), pronta p/ inseminar.</span>
+           </div>
+           <div className="flex flex-col gap-1">
+              <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs font-bold border border-red-200 w-fit">NÃO GESTANTE</span>
+              <span className="text-xs">Falha na inseminação, retorno ao cio ou aborto.</span>
+           </div>
+        </div>
+      </div>
+  );
+
   return (
     <div className="space-y-8 animate-[fadeIn_0.5s_ease-in-out] p-6">
         <div className={`bg-white p-6 rounded-lg shadow-md ${editingId ? 'border-2 border-yellow-400' : ''}`}>
              <h2 className="text-xl font-bold text-green-700 mb-4">{editingId ? 'Editar Registro' : 'Novo Registro de Inseminação'}</h2>
              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Linha 1 */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Lote</label>
                         <input type="text" placeholder="Ex: L001" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.lote} onChange={e => setFormState({...formState, lote: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nº Matriz <span className="text-red-500">*</span></label>
-                        <input type="number" placeholder="Ex: 123" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" required value={formState.numeroMatriz} onChange={e => setFormState({...formState, numeroMatriz: e.target.value})} />
+                        {matrizes.length > 0 ? (
+                            <select className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" required value={formState.numeroMatriz} onChange={e => setFormState({...formState, numeroMatriz: e.target.value})}>
+                                <option value="">-- Selecione a Matriz --</option>
+                                {matrizes.map(m => <option key={m.id} value={m.numero}>Matriz {m.numero} {m.nome ? `(${m.nome})` : ''}</option>)}
+                            </select>
+                        ) : (
+                            <input type="number" placeholder="Ex: 123" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" required value={formState.numeroMatriz} onChange={e => setFormState({...formState, numeroMatriz: e.target.value})} />
+                        )}
+                        {matrizes.length === 0 && <p className="text-[10px] text-orange-600 mt-1">Dica: Cadastre matrizes primeiro para seleção rápida.</p>}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">1º Dia Inseminação <span className="text-red-500">*</span></label>
                         <input type="date" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" required value={formState.primeiroDiaInseminacao} onChange={e => setFormState({...formState, primeiroDiaInseminacao: e.target.value})} />
                     </div>
-
-                    {/* Linha 2 */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Último Dia Inseminação</label>
                         <input type="date" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.ultimoDiaInseminacao} onChange={e => setFormState({...formState, ultimoDiaInseminacao: e.target.value})} />
@@ -1120,8 +1262,6 @@ const InseminacaoScreen: React.FC<{
                          <label className="block text-sm font-medium text-gray-700 mb-1">Nº Macho</label>
                          <input type="text" placeholder="Ex: M456" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.numeroMacho} onChange={e => setFormState({...formState, numeroMacho: e.target.value})} />
                     </div>
-
-                    {/* Linha 3 */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Data Retorno Cio</label>
                         <input type="date" className="w-full p-2 border rounded focus:ring-green-600 focus:border-green-600" value={formState.dataRetornoCio} onChange={e => setFormState({...formState, dataRetornoCio: e.target.value})} />
@@ -1191,7 +1331,7 @@ const InseminacaoScreen: React.FC<{
                         {filteredData.slice(0, 50).map(item => {
                             const status = getStatusDisplay(item);
                             return (
-                                <tr key={item.id} className="border-b hover:bg-gray-50">
+                                <tr key={item.id} className="border-b hover:bg-gray-50 transition-colors">
                                     <td className="px-6 py-4 font-bold text-gray-900">{item.numeroMatriz}</td>
                                     <td className="px-6 py-4">{item.lote || '-'}</td>
                                     <td className="px-6 py-4">{formatarData(item.primeiroDiaInseminacao)}</td>
@@ -1203,8 +1343,8 @@ const InseminacaoScreen: React.FC<{
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 flex gap-2">
-                                        <button onClick={() => { setEditingId(item.id); setFormState({ ...formState, numeroMatriz: item.numeroMatriz.toString(), lote: item.lote, gestante: item.gestante, primeiroDiaInseminacao: item.primeiroDiaInseminacao, numeroMacho: item.numeroMacho || '', ultimoDiaInseminacao: item.ultimoDiaInseminacao || '', numeroDoses: item.numeroDoses?.toString() || '', dataRetornoCio: item.dataRetornoCio || '' }); window.scrollTo(0,0); }} className="text-yellow-600 hover:text-yellow-800"><EditIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => setDeleteConfirmation({isOpen: true, type: 'single', id: item.id})} className="text-red-600 hover:text-red-800"><TrashIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => { setEditingId(item.id); setFormState({ ...formState, numeroMatriz: item.numeroMatriz.toString(), lote: item.lote, gestante: item.gestante, primeiroDiaInseminacao: item.primeiroDiaInseminacao, numeroMacho: item.numeroMacho || '', ultimoDiaInseminacao: item.ultimoDiaInseminacao || '', numeroDoses: item.numeroDoses?.toString() || '', dataRetornoCio: item.dataRetornoCio || '' }); window.scrollTo(0,0); }} className="text-yellow-600 hover:text-yellow-800 transition-colors"><EditIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => setDeleteConfirmation({isOpen: true, type: 'single', id: item.id})} className="text-red-600 hover:text-red-800 transition-colors"><TrashIcon className="w-5 h-5"/></button>
                                     </td>
                                 </tr>
                             );
@@ -1221,7 +1361,6 @@ const InseminacaoScreen: React.FC<{
 
 // --- GESTACAO SCREEN ---
 const GestacaoScreen: React.FC<{ data: Inseminacao[], updateInseminacao: (id: string, item: Partial<Inseminacao>) => void }> = ({ data, updateInseminacao }) => {
-    // Filter active gestations: Gestante=SIM and no Parto recorded yet
     const gestantes = useMemo(() => 
         data.filter(item => item.gestante === 'SIM' && !item.parto)
             .sort((a,b) => new Date(a.primeiroDiaInseminacao).getTime() - new Date(b.primeiroDiaInseminacao).getTime())
@@ -1255,7 +1394,7 @@ const GestacaoScreen: React.FC<{ data: Inseminacao[], updateInseminacao: (id: st
     );
 };
 
-// --- FICHAS SCREEN (MATERNIDADE) ---
+// --- FICHAS SCREEN ---
 
 const FichasScreen: React.FC<{ 
     data: Inseminacao[], 
@@ -1370,10 +1509,6 @@ const FichasScreen: React.FC<{
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Mumificados</label>
                                     <input type="number" min="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition-all" value={partoForm.mumificados} onChange={e => setPartoForm({...partoForm, mumificados: parseInt(e.target.value) || 0})} />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Peso Médio (kg)</label>
-                                    <input type="number" step="0.01" min="0" className="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none transition-all" value={partoForm.pesoMedio} onChange={e => setPartoForm({...partoForm, pesoMedio: parseFloat(e.target.value) || 0})} />
-                                </div>
                             </div>
                             
                             <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100 flex justify-between items-center">
@@ -1406,9 +1541,20 @@ const FichasScreen: React.FC<{
 // --- APP COMPONENT ---
 
 const App: React.FC = () => {
-    const { data, loading, addInseminacao, updateInseminacao, removeInseminacao, clearAllInseminacoes, importInseminacoes } = useSwineData();
-    const [activeScreen, setActiveScreen] = useState<Screen | 'relatorios'>('dashboard');
-    const [selectedMatrizId, setSelectedMatrizId] = useState<string | null>(null);
+    const { 
+        data, 
+        matrizes,
+        loading, 
+        addInseminacao, 
+        updateInseminacao, 
+        removeInseminacao, 
+        clearAllInseminacoes, 
+        importInseminacoes,
+        addMatriz,
+        updateMatriz,
+        removeMatriz
+    } = useSwineData();
+    const [activeScreen, setActiveScreen] = useState<Screen>('dashboard');
     const [toast, setToast] = useState<{message: string, visible: boolean}>({ message: '', visible: false });
 
     const showToast = (message: string) => {
@@ -1427,10 +1573,19 @@ const App: React.FC = () => {
     const renderScreen = () => {
         switch(activeScreen) {
             case 'dashboard':
-                return <DashboardScreen data={data} />;
+                return <DashboardScreen data={data} matrizesCount={matrizes.length} />;
+            case 'matrizes':
+                return <MatrizesScreen 
+                    matrizes={matrizes} 
+                    addMatriz={addMatriz} 
+                    updateMatriz={updateMatriz} 
+                    removeMatriz={removeMatriz} 
+                    showToast={showToast} 
+                />;
             case 'inseminacao':
                 return <InseminacaoScreen 
                     data={data} 
+                    matrizes={matrizes}
                     addInseminacao={addInseminacao} 
                     updateInseminacao={updateInseminacao} 
                     removeInseminacao={removeInseminacao} 
@@ -1438,7 +1593,7 @@ const App: React.FC = () => {
                     importInseminacoes={importInseminacoes}
                     showToast={showToast}
                     setActiveScreen={setActiveScreen}
-                    setSelectedMatrizId={setSelectedMatrizId}
+                    setSelectedMatrizId={() => {}}
                 />;
             case 'gestacao':
                 return <GestacaoScreen data={data} updateInseminacao={updateInseminacao} />;
@@ -1447,14 +1602,14 @@ const App: React.FC = () => {
             case 'relatorios':
                 return <RelatoriosScreen data={data} showToast={showToast} />;
             default:
-                return <DashboardScreen data={data} />;
+                return <DashboardScreen data={data} matrizesCount={matrizes.length} />;
         }
     };
 
-    const NavItem: React.FC<{ screen: Screen | 'relatorios', icon: React.ReactNode, label: string }> = ({ screen, icon, label }) => (
+    const NavItem: React.FC<{ screen: Screen, icon: React.ReactNode, label: string }> = ({ screen, icon, label }) => (
         <button 
             onClick={() => setActiveScreen(screen)} 
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${activeScreen === screen ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-green-50'}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors transition-all ${activeScreen === screen ? 'bg-green-600 text-white shadow-md' : 'text-gray-600 hover:bg-green-50'}`}
         >
             {icon}
             <span className="font-medium">{label}</span>
@@ -1466,49 +1621,39 @@ const App: React.FC = () => {
             {/* Sidebar */}
             <aside className="w-64 bg-white border-r border-gray-200 fixed h-full z-10 hidden md:flex flex-col">
                 <div className="p-6 border-b border-gray-100 flex flex-col items-center text-center gap-3">
-                    <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-green-600 p-0.5">
-                        <img 
-                            src="https://scontent.fcgb1-1.fna.fbcdn.net/v/t39.30808-6/464571501_1012873634199630_7883046885185362179_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=9ePRTEMKc1QQ7kNvwEsmcS7&_nc_oc=AdlTwctKgZXUOOlfPX6XHQziS2879anhHRKeNNSioarOymW8LrrpZiEB0qitWdqHAGG-K8_C_7KHV0uohnVFG4lr&_nc_zt=23&_nc_ht=scontent.fcgb1-1.fna&_nc_gid=o6Tq9TTmRQ-sKiutdShYHA&oh=00_Afm9E08lRhPpcN9pOpOPEHGj5kzbeLSq3RgGGk-3FFnjhA&oe=6935B232" 
-                            alt="IFMT Logo" 
-                            className="w-full h-full object-cover rounded-full"
-                        />
-                    </div>
                     <div>
-                        <h1 className="text-lg font-bold text-gray-800 leading-tight">Gestão de Suínos</h1>
+                        <h1 className="text-2xl font-black text-green-700 tracking-tighter leading-tight">SIGLAB SUINOS</h1>
                         <p className="text-[10px] text-gray-500 uppercase font-semibold mt-1">Sistema de Controle por Matrizes</p>
                     </div>
                 </div>
                 <nav className="flex-1 p-4 space-y-2">
                     <NavItem screen="dashboard" icon={<LayoutGridIcon className="w-5 h-5"/>} label="Dashboard" />
+                    <NavItem screen="matrizes" icon={<UsersIcon className="w-5 h-5"/>} label="Cad. Matrizes" />
                     <NavItem screen="inseminacao" icon={<EditIcon className="w-5 h-5"/>} label="Inseminação" />
                     <NavItem screen="gestacao" icon={<ClockIcon className="w-5 h-5"/>} label="Gestação" />
                     <NavItem screen="fichas" icon={<FileTextIcon className="w-5 h-5"/>} label="Maternidade" />
                     <NavItem screen="relatorios" icon={<BarChartIcon className="w-5 h-5"/>} label="Relatórios" />
                 </nav>
                 <div className="p-4 border-t border-gray-100">
-                    <p className="text-xs text-gray-400 text-center">v1.0.0 - Gestão Suína</p>
+                    <p className="text-xs text-gray-400 text-center">v1.0.0 - SIGLAB SUINOS</p>
                 </div>
             </aside>
 
             {/* Mobile Nav */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 flex justify-around p-2">
-                 <button onClick={() => setActiveScreen('dashboard')} className={`p-2 rounded-full ${activeScreen === 'dashboard' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><LayoutGridIcon className="w-6 h-6"/></button>
-                 <button onClick={() => setActiveScreen('inseminacao')} className={`p-2 rounded-full ${activeScreen === 'inseminacao' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><EditIcon className="w-6 h-6"/></button>
-                 <button onClick={() => setActiveScreen('gestacao')} className={`p-2 rounded-full ${activeScreen === 'gestacao' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><ClockIcon className="w-6 h-6"/></button>
-                 <button onClick={() => setActiveScreen('fichas')} className={`p-2 rounded-full ${activeScreen === 'fichas' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><FileTextIcon className="w-6 h-6"/></button>
-                 <button onClick={() => setActiveScreen('relatorios')} className={`p-2 rounded-full ${activeScreen === 'relatorios' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><BarChartIcon className="w-6 h-6"/></button>
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 flex justify-around p-2 shadow-lg">
+                 <button onClick={() => setActiveScreen('dashboard')} title="Dashboard" className={`p-2 rounded-full transition-all ${activeScreen === 'dashboard' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><LayoutGridIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('matrizes')} title="Matrizes" className={`p-2 rounded-full transition-all ${activeScreen === 'matrizes' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><UsersIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('inseminacao')} title="Inseminação" className={`p-2 rounded-full transition-all ${activeScreen === 'inseminacao' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><EditIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('gestacao')} title="Gestação" className={`p-2 rounded-full transition-all ${activeScreen === 'gestacao' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><ClockIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('fichas')} title="Maternidade" className={`p-2 rounded-full transition-all ${activeScreen === 'fichas' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><FileTextIcon className="w-6 h-6"/></button>
+                 <button onClick={() => setActiveScreen('relatorios')} title="Relatórios" className={`p-2 rounded-full transition-all ${activeScreen === 'relatorios' ? 'text-green-600 bg-green-50' : 'text-gray-500'}`}><BarChartIcon className="w-6 h-6"/></button>
             </div>
 
             {/* Main Content */}
             <main className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto mb-16 md:mb-0">
                 <header className="flex items-center gap-3 mb-8 md:hidden bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                    <img 
-                        src="https://scontent.fcgb1-1.fna.fbcdn.net/v/t39.30808-6/464571501_1012873634199630_7883046885185362179_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=9ePRTEMKc1QQ7kNvwEsmcS7&_nc_oc=AdlTwctKgZXUOOlfPX6XHQziS2879anhHRKeNNSioarOymW8LrrpZiEB0qitWdqHAGG-K8_C_7KHV0uohnVFG4lr&_nc_zt=23&_nc_ht=scontent.fcgb1-1.fna&_nc_gid=o6Tq9TTmRQ-sKiutdShYHA&oh=00_Afm9E08lRhPpcN9pOpOPEHGj5kzbeLSq3RgGGk-3FFnjhA&oe=6935B232" 
-                        alt="Logo" 
-                        className="w-20 h-20 rounded-full border border-green-600"
-                    />
                     <div>
-                        <h1 className="text-lg font-bold text-gray-800">Gestão de Suínos</h1>
+                        <h1 className="text-xl font-black text-green-700 tracking-tighter">SIGLAB SUINOS</h1>
                         <p className="text-[10px] text-gray-500 font-medium">Controle por Matrizes</p>
                     </div>
                 </header>

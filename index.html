@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gestão Suínos</title>
+    <title>SIGLAB SUINOS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* Custom animation for toast and other elements */
@@ -14,6 +14,17 @@
       }
       .animate-pulso {
         animation: pulso 1.5s infinite;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideUp {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .animate-slideUp {
+        animation: slideUp 0.3s ease-out;
       }
     </style>
   <script type="importmap">
@@ -27,7 +38,7 @@
 }
 </script>
 </head>
-  <body class="bg-cinza-fundo">
+  <body class="bg-gray-100">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
